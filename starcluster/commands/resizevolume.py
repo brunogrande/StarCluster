@@ -69,6 +69,11 @@ class CmdResizeVolume(CmdCreateVolume):
             help="The instance type to use when launching volume "
             "host instance (default: t1.micro)")
         parser.add_option(
+            "-V", "--volume-type", dest="volume_type",
+            action="store", type="choice", default="standard",
+            choices=sorted(static.EBS_VOLUME_TYPES),
+            help="The volume type to use (default: standard)")
+        parser.add_option(
             "-r", "--resizefs-cmd", dest="resizefs_cmd",
             action="store", type="string", default="resize2fs",
             help="Specify alternate resizefs command to use when "
