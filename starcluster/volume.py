@@ -44,7 +44,7 @@ class VolumeCreator(cluster.Cluster):
     def __init__(self, ec2_conn, spot_bid=None, keypair=None,
                  key_location=None, host_instance=None, device='/dev/sdz',
                  image_id=static.BASE_AMI_32, instance_type="t1.micro",
-                 shutdown_instance=False, detach_vol=False,
+                 volume_type="standard", shutdown_instance=False, detach_vol=False,
                  mkfs_cmd='mkfs.ext3 -F', resizefs_cmd='resize2fs', **kwargs):
         self._host_instance = host_instance
         self._instance = None
@@ -53,6 +53,7 @@ class VolumeCreator(cluster.Cluster):
         self._real_device = None
         self._image_id = image_id or static.BASE_AMI_32
         self._instance_type = instance_type or 'm1.small'
+        self._volume_type = volume_type
         self._shutdown = shutdown_instance
         self._detach_vol = detach_vol
         self._mkfs_cmd = mkfs_cmd
@@ -105,8 +106,8 @@ class VolumeCreator(cluster.Cluster):
             s.stop()
         return self._instance
 
-    def _create_volume(self, size, zone, snapshot_id=None):
-        vol = self.ec2.create_volume(size, zone, snapshot_id)
+    def _create_volume(self, size, zone, snapshot_id=None, volume_type="standard"):
+        vol = self.ec2.create_volume(size, zone, snapshot_id, volume_type)
         self._volume = vol
         log.info("New volume id: %s" % vol.id)
         self.ec2.wait_for_volume(vol, status='available')
@@ -188,6 +189,11 @@ class VolumeCreator(cluster.Cluster):
         except ValueError:
             raise exception.ValidationError("volume_size must be an integer")
 
+    def _validate_volume_type(self, volume_type):
+        if volume_type not in static.EBS_VOLUME_TYPES:
+            raise exception.ValidationError(
+                "volume_type must be among possible options (see help)")
+
     def _validate_device(self, device):
         if not utils.is_valid_device(device):
             raise exception.ValidationError("volume device %s is not valid" %
@@ -197,10 +203,11 @@ class VolumeCreator(cluster.Cluster):
         log.info("Checking for required remote commands...")
         self._instance.ssh.check_required(progs)
 
-    def validate(self, size, zone, device):
+    def validate(self, size, zone, device, volume_type):
         self._validate_size(size)
         self._validate_zone(zone)
         self._validate_device(device)
+        self._validate_volume_type(volume_type)
 
     def is_valid(self, size, zone, device):
         try:
@@ -280,11 +287,12 @@ class VolumeCreator(cluster.Cluster):
     @print_timing("Creating volume")
     def create(self, volume_size, volume_zone, name=None, tags=None):
         try:
-            self.validate(volume_size, volume_zone, self._aws_block_device)
+            volume_type = self._volume_type
+            self.validate(volume_size, volume_zone, self._aws_block_device, volume_type)
             instance = self._request_instance(volume_zone)
             self._validate_required_progs([self._mkfs_cmd.split()[0]])
             self._determine_device()
-            vol = self._create_volume(volume_size, volume_zone)
+            vol = self._create_volume(volume_size, volume_zone, volume_type=volume_type)
             if tags:
                 for tag in tags:
                     tagval = tags.get(tag)

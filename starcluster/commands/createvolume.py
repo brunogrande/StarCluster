@@ -67,6 +67,11 @@ class CmdCreateVolume(CmdBase):
             help="Specify alternate mkfs command to use when "
             "formatting volume (default: mkfs.ext3)")
         parser.add_option(
+            "-V", "--volume-type", dest="volume_type",
+            action="store", type="choice", default="standard",
+            choices=sorted(static.EBS_VOLUME_TYPES),
+            help="The volume type to use (default: standard)")
+        parser.add_option(
             "-i", "--image-id", dest="image_id",
             action="store", type="string", default=None,
             help="The AMI to use when launching volume host instance")

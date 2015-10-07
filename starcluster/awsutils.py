@@ -967,12 +967,12 @@ class EasyEC2(EasyAWS):
             return (osversion, rc)
         self.list_images(imgs, sort_key=sc_public_sort, reverse=True)
 
-    def create_volume(self, size, zone, snapshot_id=None):
-        msg = "Creating %sGB volume in zone %s" % (size, zone)
+    def create_volume(self, size, zone, snapshot_id=None, volume_type="standard"):
+        msg = "Creating %sGB volume (type: %s) in zone %s" % (size, volume_type, zone)
         if snapshot_id:
             msg += " from snapshot %s" % snapshot_id
         log.info(msg)
-        return self.conn.create_volume(size, zone, snapshot_id)
+        return self.conn.create_volume(size, zone, snapshot_id, volume_type)
 
     def remove_volume(self, volume_id):
         vol = self.get_volume(volume_id)

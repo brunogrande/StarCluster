@@ -269,6 +269,8 @@ EBS_VOLUME_SETTINGS = {
     'mount_path': (str, True, None, None, None),
 }
 
+EBS_VOLUME_TYPES = ["standard", "io1", "gp2"]
+
 PLUGIN_SETTINGS = {
     'setup_class': (str, True, None, None, None),
 }
